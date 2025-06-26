@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>销售数据查询系统</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; line-height: 1.6; color: #333; background-color: #f8f9fa; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    header { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; padding: 2rem; border-radius: 10px; margin-bottom: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .subtitle { font-size: 1.1rem; opacity: 0.9; }
+    .card { background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 2rem; overflow: hidden; }
+    .card-header { padding: 1.5rem; background-color: #f1f5f9; border-bottom: 1px solid #e2e8f0; }
+    .card-body { padding: 1.5rem; }
+    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .filter-group { display: flex; flex-direction: column; }
+    label { font-weight: 600; margin-bottom: 0.5rem; color: #4a5568; }
+    input, select { padding: 0.75rem; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 1rem; }
+    button { background: #4299e1; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; cursor: pointer; font-size: 1rem; font-weight: 600; transition: all 0.3s ease; }
+    button:hover { background: #3182ce; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(50, 115, 220, 0.3); }
+    .btn-query { background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    th { background-color: #f7fafc; font-weight: 600; color: #4a5568; }
+    tr:hover { background-color: #f8fafc; }
+    .summary-card { background: linear-gradient(135deg, #dbeafe 0%, #d1fae5 100%); }
+    .loading { display: none; text-align: center; padding: 2rem; }
+    .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: #4299e1; animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .chart-container { height: 300px; margin-top: 2rem; }
+    @media (max-width: 768px) {
+      .filters { grid-template-columns: 1fr; }
+      header { padding: 1.5rem; }
+      h1 { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>销售数据查询系统</h1>
+      <p class="subtitle">实时查看和分析销售数据</p>
+    </header>
+    
+    <div class="card">
+      <div class="card-header">
+        <h2>数据筛选</h2>
+      </div>
+      <div class="card-body">
+        <div class="filters">
+          <div class="filter-group">
+            <label for="startDate">开始日期</label>
+            <input type="date" id="startDate">
+          </div>
+          
+          <div class="filter-group">
+            <label for="endDate">结束日期</label>
+            <input type="date" id="endDate">
+          </div>
+          
+          <div class="filter-group">
+            <label for="warehouse">仓库</label>
+            <select id="warehouse">
+              <option value="">全部仓库</option>
+              <!-- 仓库选项将通过JS动态添加 -->
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label for="product">商品</label>
+            <select id="product">
+              <option value="">全部商品</option>
+              <!-- 商品选项将通过JS动态添加 -->
+            </select>
+          </div>
+        </div>
+        
+        <button id="queryBtn" class="btn-query">查询数据</button>
+      </div>
+    </div>
+    
+    <div class="card summary-card">
+      <div class="card-header">
+        <h2>销售汇总</h2>
+      </div>
+      <div class="card-body">
+        <div class="summary-stats">
+          <div style="display: flex; justify-content: space-around; text-align: center; margin-bottom: 1.5rem;">
+            <div>
+              <div class="stat-label">总销量</div>
+              <div id="totalQuantity" class="stat-value">0</div>
+            </div>
+            <div>
+              <div class="stat-label">总金额</div>
+              <div id="totalAmount" class="stat-value">¥0.00</div>
+            </div>
+            <div>
+              <div class="stat-label">商品种类</div>
+              <div id="totalProducts" class="stat-value">0</div>
+            </div>
+          </div>
+        </div>
+        
+        <table id="summaryTable">
+          <thead>
+            <tr>
+              <th>商品ID</th>
+              <th>商品名称</th>
+              <th>仓库</th>
+              <th>销量</th>
+              <th>金额</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <h2>详细销售记录</h2>
+      </div>
+      <div class="card-body">
+        <table id="detailTable">
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>商品ID</th>
+              <th>商品名称</th>
+              <th>仓库</th>
+              <th>销量</th>
+              <th>金额</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>正在加载数据...</p>
+    </div>
+  </div>
+
+  <script>
+    // 初始化Supabase
+    const supabaseUrl = '你的Supabase URL';
+    const supabaseKey = '你的Supabase anon key';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    
+    // DOM元素
+    const startDateEl = document.getElementById('startDate');
+    const endDateEl = document.getElementById('endDate');
+    const warehouseEl = document.getElementById('warehouse');
+    const productEl = document.getElementById('product');
+    const queryBtn = document.getElementById('queryBtn');
+    const summaryTable = document.getElementById('summaryTable').querySelector('tbody');
+    const detailTable = document.getElementById('detailTable').querySelector('tbody');
+    const loadingEl = document.getElementById('loading');
+    const totalQuantityEl = document.getElementById('totalQuantity');
+    const totalAmountEl = document.getElementById('totalAmount');
+    const totalProductsEl = document.getElementById('totalProducts');
+    
+    // 设置默认日期（最近30天）
+    function setDefaultDates() {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 30);
+      
+      endDateEl.valueAsDate = endDate;
+      startDateEl.valueAsDate = startDate;
+    }
+    
+    // 加载筛选选项（仓库和商品）
+    async function loadFilterOptions() {
+      try {
+        // 获取仓库列表
+        const { data: warehouses } = await supabase
+          .from('sales_records')
+          .select('warehouse')
+          .not('warehouse', 'is', null);
+          
+        // 去重并排序
+        const uniqueWarehouses = [...new Set(warehouses.map(w => w.warehouse))].sort();
+        
+        // 添加到选择框
+        uniqueWarehouses.forEach(wh => {
+          const option = document.createElement('option');
+          option.value = wh;
+          option.textContent = wh;
+          warehouseEl.appendChild(option);
+        });
+        
+        // 获取商品列表
+        const { data: products } = await supabase
+          .from('sales_records')
+          .select('product_id, product_name')
+          .not('product_id', 'is', null);
+          
+        // 去重
+        const uniqueProducts = products.filter((p, i, self) => 
+          i === self.findIndex(t => t.product_id === p.product_id)
+        ).sort((a, b) => a.product_name.localeCompare(b.product_name));
+        
+        // 添加到选择框
+        uniqueProducts.forEach(p => {
+          const option = document.createElement('option');
+          option.value = p.product_id;
+          option.textContent = p.product_name;
+          productEl.appendChild(option);
+        });
+        
+      } catch (error) {
+        console.error('加载筛选选项失败:', error);
+      }
+    }
+    
+    // 查询数据
+    async function loadData() {
+      // 显示加载状态
+      loadingEl.style.display = 'block';
+      summaryTable.innerHTML = '';
+      detailTable.innerHTML = '';
+      
+      const startDate = startDateEl.value;
+      const endDate = endDateEl.value;
+      const warehouse = warehouseEl.value;
+      const product = productEl.value;
+      
+      try {
+        // 构建查询条件
+        let query = supabase
+          .from('sales_records')
+          .select('*')
+          .gte('sale_date', startDate)
+          .lte('sale_date', endDate);
+          
+        if (warehouse) {
+          query = query.eq('warehouse', warehouse);
+        }
+        
+        if (product) {
+          query = query.eq('product_id', product);
+        }
+        
+        // 执行查询
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        // 显示详细数据
+        renderDetailTable(data);
+        
+        // 计算并显示汇总
+        calculateSummary(data);
+        
+      } catch (error) {
+        alert('查询失败: ' + error.message);
+        console.error(error);
+      } finally {
+        // 隐藏加载状态
+        loadingEl.style.display = 'none';
+      }
+    }
+    
+    // 渲染详细数据表格
+    function renderDetailTable(data) {
+      detailTable.innerHTML = '';
+      
+      data.forEach(record => {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+          <td>${record.sale_date}</td>
+          <td>${record.product_id}</td>
+          <td>${record.product_name}</td>
+          <td>${record.warehouse}</td>
+          <td>${record.quantity}</td>
+          <td>¥${record.amount.toFixed(2)}</td>
+        `;
+        
+        detailTable.appendChild(row);
+      });
+    }
+    
+    // 计算并显示汇总数据
+    function calculateSummary(data) {
+      if (data.length === 0) {
+        totalQuantityEl.textContent = '0';
+        totalAmountEl.textContent = '¥0.00';
+        totalProductsEl.textContent = '0';
+        return;
+      }
+      
+      // 计算总销量和总金额
+      const totalQuantity = data.reduce((sum, record) => sum + record.quantity, 0);
+      const totalAmount = data.reduce((sum, record) => sum + record.amount, 0);
+      
+      // 更新统计卡片
+      totalQuantityEl.textContent = totalQuantity.toLocaleString();
+      totalAmountEl.textContent = `¥${totalAmount.toFixed(2)}`;
+      
+      // 按商品汇总
+      const summaryMap = new Map();
+      
+      data.forEach(record => {
+        const key = `${record.product_id}-${record.warehouse}`;
+        
+        if (!summaryMap.has(key)) {
+          summaryMap.set(key, {
+            product_id: record.product_id,
+            product_name: record.product_name,
+            warehouse: record.warehouse,
+            total_quantity: 0,
+            total_amount: 0
+          });
+        }
+        
+        const summary = summaryMap.get(key);
+        summary.total_quantity += record.quantity;
+        summary.total_amount += record.amount;
+      });
+      
+      // 更新商品种类数量
+      totalProductsEl.textContent = summaryMap.size;
+      
+      // 渲染汇总表格
+      summaryTable.innerHTML = '';
+      
+      summaryMap.forEach(summary => {
+        const row = document.createElement('tr');
+        
+        row.innerHTML = `
+          <td>${summary.product_id}</td>
+          <td>${summary.product_name}</td>
+          <td>${summary.warehouse}</td>
+          <td>${summary.total_quantity.toLocaleString()}</td>
+          <td>¥${summary.total_amount.toFixed(2)}</td>
+        `;
+        
+        summaryTable.appendChild(row);
+      });
+    }
+    
+    // 初始化页面
+    document.addEventListener('DOMContentLoaded', () => {
+      setDefaultDates();
+      loadFilterOptions();
+      
+      // 绑定查询按钮事件
+      queryBtn.addEventListener('click', loadData);
+      
+      // 默认加载数据
+      setTimeout(loadData, 1000);
+    });
+  </script>
+</body>
+</html>
