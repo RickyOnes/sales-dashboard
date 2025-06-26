@@ -263,24 +263,33 @@
         const warehouse = warehouseEl.value;
         const product = productEl.value;
         
-        console.log('执行查询，参数:', { startDate, endDate, warehouse, product });
-        
         try {
+          // 查询使用中文表名和字段名
           let query = supabaseClient
-            .from('sales_records')
-            .select('*')
-            .gte('sale_date', startDate)
-            .lte('sale_date', endDate);
+            .from('销售记录')  // 使用中文表名
+            .select('销售日期, 商品ID, 商品名称, 仓库, 销量, 单价') // 使用中文字段名
+            .gte('销售日期', startDate)
+            .lte('销售日期', endDate);
             
-          if (warehouse) query = query.eq('warehouse', warehouse);
-          if (product) query = query.eq('product_id', product);
+          if (warehouse) query = query.eq('仓库', warehouse);
+          if (product) query = query.eq('商品ID', product);
           
           const { data, error } = await query;
           
           if (error) throw error;
           
-          renderDetailTable(data);
-          calculateSummary(data);
+          // 将中文字段名转换为英文别名以便后续处理
+          const transformedData = data.map(item => ({
+            sale_date: item.销售日期,
+            product_id: item.商品ID,
+            product_name: item.商品名称,
+            warehouse: item.仓库,
+            quantity: item.销量,
+            price: item.单价
+          }));
+          
+          renderDetailTable(transformedData);
+          calculateSummary(transformedData);
           
         } catch (error) {
           console.error('查询错误详情:', {
@@ -315,13 +324,16 @@
         
         data.forEach(record => {
           const row = document.createElement('tr');
+          // 前端计算金额 = 销量 × 单价
+          const amount = (record.quantity || 0) * (record.price || 0);
+          
           row.innerHTML = `
             <td>${record.sale_date || '--'}</td>
             <td>${record.product_id || '--'}</td>
             <td>${record.product_name || '--'}</td>
             <td>${record.warehouse || '--'}</td>
             <td>${record.quantity || 0}</td>
-            <td>¥${(record.amount || 0).toFixed(2)}</td>
+            <td>¥${amount.toFixed(2)}</td>
           `;
           tbody.appendChild(row);
         });
@@ -335,9 +347,14 @@
           return;
         }
         
-        // 计算总销量和总金额
-        const totalQuantity = data.reduce((sum, record) => sum + (record.quantity || 0), 0);
-        const totalAmount = data.reduce((sum, record) => sum + (record.amount || 0), 0);
+        // 计算总销量和总金额（前端计算）
+        let totalQuantity = 0;
+        let totalAmount = 0;
+        
+        data.forEach(record => {
+          totalQuantity += record.quantity || 0;
+          totalAmount += (record.quantity || 0) * (record.price || 0);
+        });
         
         // 更新统计卡片
         totalQuantityEl.textContent = totalQuantity.toLocaleString();
@@ -361,7 +378,8 @@
           
           const summary = summaryMap.get(key);
           summary.total_quantity += (record.quantity || 0);
-          summary.total_amount += (record.amount || 0);
+          // 前端计算金额
+          summary.total_amount += (record.quantity || 0) * (record.price || 0);
         });
         
         // 更新商品种类数量
