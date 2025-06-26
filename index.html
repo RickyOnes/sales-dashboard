@@ -200,16 +200,16 @@
         }
         
         try {
-          // 获取仓库列表 - 使用中文表名和字段名
+          // 获取仓库列表 - 使用英文表名和字段名
           const { data: warehouses, error: whError } = await supabaseClient
-            .from('销售记录') // 中文表名
-            .select('仓库')   // 中文字段名
-            .not('仓库', 'is', null); // 中文字段名
+            .from('sales_records') // 英文表名
+            .select('warehouse')   // 英文字段名
+            .not('warehouse', 'is', null);
             
           if (whError) throw whError;
           
           // 去重并排序
-          const uniqueWarehouses = [...new Set(warehouses.map(w => w.仓库))].sort(); // 注意字段名改为中文
+          const uniqueWarehouses = [...new Set(warehouses.map(w => w.warehouse))].sort();
           
           // 添加到选择框
           warehouseEl.innerHTML = '<option value="">全部仓库</option>';
@@ -220,25 +220,25 @@
             warehouseEl.appendChild(option);
           });
           
-          // 获取商品列表 - 使用中文表名和字段名
+          // 获取商品列表 - 使用英文表名和字段名
           const { data: products, error: pError } = await supabaseClient
-            .from('销售记录') // 中文表名
-            .select('商品ID, 商品名称') // 中文字段名
-            .not('商品ID', 'is', null); // 中文字段名
+            .from('sales_records') // 英文表名
+            .select('product_id, product_name') // 英文字段名
+            .not('product_id', 'is', null);
             
           if (pError) throw pError;
           
           // 去重
           const uniqueProducts = products.filter((p, i, self) => 
-            i === self.findIndex(t => t.商品ID === p.商品ID) // 注意字段名改为中文
-          ).sort((a, b) => a.商品名称.localeCompare(b.商品名称)); // 注意字段名改为中文
+            i === self.findIndex(t => t.product_id === p.product_id)
+          ).sort((a, b) => a.product_name.localeCompare(b.product_name));
           
           // 添加到选择框
           productEl.innerHTML = '<option value="">全部商品</option>';
           uniqueProducts.forEach(p => {
             const option = document.createElement('option');
-            option.value = p.商品ID; // 注意字段名改为中文
-            option.textContent = p.商品名称; // 注意字段名改为中文
+            option.value = p.product_id;
+            option.textContent = p.product_name;
             productEl.appendChild(option);
           });
           
@@ -264,32 +264,23 @@
         const product = productEl.value;
         
         try {
-          // 查询使用中文表名和字段名
+          // 使用英文表名和字段名
           let query = supabaseClient
-            .from('销售记录')  // 使用中文表名
-            .select('销售日期, 商品ID, 商品名称, 仓库, 销量, 单价') // 使用中文字段名
-            .gte('销售日期', startDate)
-            .lte('销售日期', endDate);
+            .from('sales_records')  // 英文表名
+            .select('sale_date, product_id, product_name, warehouse, quantity, unit_price')
+            .gte('sale_date', startDate)
+            .lte('sale_date', endDate);
             
-          if (warehouse) query = query.eq('仓库', warehouse);
-          if (product) query = query.eq('商品ID', product);
+          if (warehouse) query = query.eq('warehouse', warehouse);
+          if (product) query = query.eq('product_id', product);
           
           const { data, error } = await query;
           
           if (error) throw error;
           
-          // 将中文字段名转换为英文别名以便后续处理
-          const transformedData = data.map(item => ({
-            sale_date: item.销售日期,
-            product_id: item.商品ID,
-            product_name: item.商品名称,
-            warehouse: item.仓库,
-            quantity: item.销量,
-            price: item.单价
-          }));
-          
-          renderDetailTable(transformedData);
-          calculateSummary(transformedData);
+          // 直接使用返回的数据
+          renderDetailTable(data);
+          calculateSummary(data);
           
         } catch (error) {
           console.error('查询错误详情:', {
@@ -325,7 +316,7 @@
         data.forEach(record => {
           const row = document.createElement('tr');
           // 前端计算金额 = 销量 × 单价
-          const amount = (record.quantity || 0) * (record.price || 0);
+          const amount = (record.quantity || 0) * (record.unit_price || 0);
           
           row.innerHTML = `
             <td>${record.sale_date || '--'}</td>
