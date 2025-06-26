@@ -147,245 +147,280 @@
   </div>
 
   <script>
-    // 1. 首先初始化Supabase客户端
-    const supabaseUrl = 'https://iglmqwpagzjadwauvchh.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnbG1xd3BhZ3pqYWR3YXV2Y2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODk4NDAsImV4cCI6MjA2NjQ2NTg0MH0.Mtiwp31mJvbLRTotbrb4_DobjjpM4kg9f4-G8oWz85E';
-    
-    let supabase;
-    try {
-      supabase = supabase.createClient(supabaseUrl, supabaseKey);
-      console.log('Supabase客户端初始化成功');
-    } catch (error) {
-      console.error('Supabase初始化失败:', error);
-      alert('系统初始化失败，请刷新页面或联系管理员');
-    }
-
-    // 2. DOM元素引用
-    const startDateEl = document.getElementById('startDate');
-    const endDateEl = document.getElementById('endDate');
-    const warehouseEl = document.getElementById('warehouse');
-    const productEl = document.getElementById('product');
-    const queryBtn = document.getElementById('queryBtn');
-    const summaryTable = document.getElementById('summaryTable').querySelector('tbody');
-    const detailTable = document.getElementById('detailTable').querySelector('tbody');
-    const loadingEl = document.getElementById('loading');
-    const totalQuantityEl = document.getElementById('totalQuantity');
-    const totalAmountEl = document.getElementById('totalAmount');
-    const totalProductsEl = document.getElementById('totalProducts');
-
-    // 3. 功能函数
-    function setDefaultDates() {
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(endDate.getDate() - 30);
+      // 1. 初始化Supabase客户端 - 修复命名冲突问题
+      const SUPABASE_URL = 'https://iglmqwpagzjadwauvchh.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnbG1xd3BhZ3pqYWR3YXV2Y2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODk4NDAsImV4cCI6MjA2NjQ2NTg0MH0.Mtiwp31mJvbLRTotbrb4_DobjjpM4kg9f4-G8oWz85E';
       
-      // 格式化为YYYY-MM-DD
-      const format = d => d.toISOString().split('T')[0];
-      
-      endDateEl.value = format(endDate);
-      startDateEl.value = format(startDate);
-    }
-
-    async function loadFilterOptions() {
-      if (!supabase) return;
+      let supabaseClient;  // 使用不同的变量名避免冲突
       
       try {
-        // 获取仓库列表
-        const { data: warehouses, error: whError } = await supabase
-          .from('sales_records')
-          .select('warehouse')
-          .not('warehouse', 'is', null);
-          
-        if (whError) throw whError;
-        
-        // 去重并排序
-        const uniqueWarehouses = [...new Set(warehouses.map(w => w.warehouse))].sort();
-        
-        // 添加到选择框
-        warehouseEl.innerHTML = '<option value="">全部仓库</option>';
-        uniqueWarehouses.forEach(wh => {
-          const option = document.createElement('option');
-          option.value = wh;
-          option.textContent = wh;
-          warehouseEl.appendChild(option);
-        });
-        
-        // 获取商品列表
-        const { data: products, error: pError } = await supabase
-          .from('sales_records')
-          .select('product_id, product_name')
-          .not('product_id', 'is', null);
-          
-        if (pError) throw pError;
-        
-        // 去重
-        const uniqueProducts = products.filter((p, i, self) => 
-          i === self.findIndex(t => t.product_id === p.product_id)
-        ).sort((a, b) => a.product_name.localeCompare(b.product_name));
-        
-        // 添加到选择框
-        productEl.innerHTML = '<option value="">全部商品</option>';
-        uniqueProducts.forEach(p => {
-          const option = document.createElement('option');
-          option.value = p.product_id;
-          option.textContent = p.product_name;
-          productEl.appendChild(option);
-        });
-        
+        // 确保通过window对象访问supabase
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('Supabase客户端初始化成功');
       } catch (error) {
-        console.error('加载筛选选项失败:', error);
+        console.error('Supabase初始化失败:', error);
+        alert('系统初始化失败，请刷新页面或联系管理员');
       }
-    }
 
-    async function loadData() {
-      if (!supabase) {
-        console.error('错误: Supabase客户端未初始化');
-        return;
-      }
-      
-      loadingEl.style.display = 'block';
-      summaryTable.innerHTML = '';
-      detailTable.innerHTML = '';
-      
-      const startDate = startDateEl.value;
-      const endDate = endDateEl.value;
-      const warehouse = warehouseEl.value;
-      const product = productEl.value;
-      
-      console.log('执行查询，参数:', { startDate, endDate, warehouse, product });
-      
-      try {
-        let query = supabase
-          .from('sales_records')
-          .select('*')
-          .gte('sale_date', startDate)
-          .lte('sale_date', endDate);
-          
-        if (warehouse) query = query.eq('warehouse', warehouse);
-        if (product) query = query.eq('product_id', product);
-        
-        const { data, error } = await query;
-        
-        console.log('查询结果:', data);
-        
-        if (error) throw error;
-        
-        renderDetailTable(data);
-        calculateSummary(data);
-        
-      } catch (error) {
-        console.error('查询错误详情:', {
-          message: error.message,
-          details: error.details,
-          code: error.code
-        });
-        alert('查询失败: ' + error.message);
-      } finally {
-        loadingEl.style.display = 'none';
-      }
-    }
+      // 2. DOM元素引用
+      const startDateEl = document.getElementById('startDate');
+      const endDateEl = document.getElementById('endDate');
+      const warehouseEl = document.getElementById('warehouse');
+      const productEl = document.getElementById('product');
+      const queryBtn = document.getElementById('queryBtn');
+      const summaryTable = document.getElementById('summaryTable').querySelector('tbody');
+      const detailTable = document.getElementById('detailTable').querySelector('tbody');
+      const loadingEl = document.getElementById('loading');
+      const totalQuantityEl = document.getElementById('totalQuantity');
+      const totalAmountEl = document.getElementById('totalAmount');
+      const totalProductsEl = document.getElementById('totalProducts');
 
-    function renderDetailTable(data) {
-      console.log('渲染数据，条数:', data?.length);
-      
-      const tbody = detailTable;
-      tbody.innerHTML = '';
-      
-      if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">未找到匹配的记录</td></tr>';
-        return;
-      }
-      
-      data.forEach(record => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${record.sale_date || '--'}</td>
-          <td>${record.product_id || '--'}</td>
-          <td>${record.product_name || '--'}</td>
-          <td>${record.warehouse || '--'}</td>
-          <td>${record.quantity || 0}</td>
-          <td>¥${(record.amount || 0).toFixed(2)}</td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
+      // 3. 功能函数
+      function setDefaultDates() {
+        // 修复日期格式兼容性问题（Safari等浏览器）
+        const formatDate = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
 
-    function calculateSummary(data) {
-      if (!data || data.length === 0) {
-        totalQuantityEl.textContent = '0';
-        totalAmountEl.textContent = '¥0.00';
-        totalProductsEl.textContent = '0';
-        return;
-      }
-      
-      // 计算总销量和总金额
-      const totalQuantity = data.reduce((sum, record) => sum + (record.quantity || 0), 0);
-      const totalAmount = data.reduce((sum, record) => sum + (record.amount || 0), 0);
-      
-      // 更新统计卡片
-      totalQuantityEl.textContent = totalQuantity.toLocaleString();
-      totalAmountEl.textContent = `¥${totalAmount.toFixed(2)}`;
-      
-      // 按商品汇总
-      const summaryMap = new Map();
-      
-      data.forEach(record => {
-        const key = `${record.product_id}-${record.warehouse}`;
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(endDate.getDate() - 30);
         
-        if (!summaryMap.has(key)) {
-          summaryMap.set(key, {
-            product_id: record.product_id,
-            product_name: record.product_name,
-            warehouse: record.warehouse,
-            total_quantity: 0,
-            total_amount: 0
-          });
+        endDateEl.value = formatDate(endDate);
+        startDateEl.value = formatDate(startDate);
+      }
+
+      async function loadFilterOptions() {
+        if (!supabaseClient) {
+          console.error('错误: Supabase客户端未初始化');
+          return;
         }
         
-        const summary = summaryMap.get(key);
-        summary.total_quantity += (record.quantity || 0);
-        summary.total_amount += (record.amount || 0);
-      });
-      
-      // 更新商品种类数量
-      totalProductsEl.textContent = summaryMap.size;
-      
-      // 渲染汇总表格
-      summaryTable.innerHTML = '';
-      
-      summaryMap.forEach(summary => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${summary.product_id || '--'}</td>
-          <td>${summary.product_name || '--'}</td>
-          <td>${summary.warehouse || '--'}</td>
-          <td>${summary.total_quantity.toLocaleString()}</td>
-          <td>¥${summary.total_amount.toFixed(2)}</td>
-        `;
-        summaryTable.appendChild(row);
-      });
-    }
-
-    // 4. 页面初始化
-    document.addEventListener('DOMContentLoaded', () => {
-      if (!supabase) {
-        console.error('错误: Supabase客户端未正确初始化');
-        return;
+        try {
+          // 获取仓库列表
+          const { data: warehouses, error: whError } = await supabaseClient
+            .from('sales_records')
+            .select('warehouse')
+            .not('warehouse', 'is', null);
+            
+          if (whError) throw whError;
+          
+          // 去重并排序
+          const uniqueWarehouses = [...new Set(warehouses.map(w => w.warehouse))].sort();
+          
+          // 添加到选择框
+          warehouseEl.innerHTML = '<option value="">全部仓库</option>';
+          uniqueWarehouses.forEach(wh => {
+            const option = document.createElement('option');
+            option.value = wh;
+            option.textContent = wh;
+            warehouseEl.appendChild(option);
+          });
+          
+          // 获取商品列表
+          const { data: products, error: pError } = await supabaseClient
+            .from('sales_records')
+            .select('product_id, product_name')
+            .not('product_id', 'is', null);
+            
+          if (pError) throw pError;
+          
+          // 去重
+          const uniqueProducts = products.filter((p, i, self) => 
+            i === self.findIndex(t => t.product_id === p.product_id)
+          ).sort((a, b) => a.product_name.localeCompare(b.product_name));
+          
+          // 添加到选择框
+          productEl.innerHTML = '<option value="">全部商品</option>';
+          uniqueProducts.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.product_id;
+            option.textContent = p.product_name;
+            productEl.appendChild(option);
+          });
+          
+        } catch (error) {
+          console.error('加载筛选选项失败:', error);
+          alert('筛选选项加载失败: ' + error.message);
+        }
       }
-      
-      console.log('DOM已加载，开始初始化页面');
-      
-      setDefaultDates();
-      loadFilterOptions();
-      
-      queryBtn.addEventListener('click', loadData);
-      
-      // 延迟加载初始数据
-      setTimeout(() => {
-        console.log('执行初始数据加载...');
-        loadData();
-      }, 1000);
-    });
+
+      async function loadData() {
+        if (!supabaseClient) {
+          alert('系统未初始化，请刷新页面');
+          return;
+        }
+        
+        loadingEl.style.display = 'block';
+        summaryTable.innerHTML = '';
+        detailTable.innerHTML = '';
+        
+        const startDate = startDateEl.value;
+        const endDate = endDateEl.value;
+        const warehouse = warehouseEl.value;
+        const product = productEl.value;
+        
+        console.log('执行查询，参数:', { startDate, endDate, warehouse, product });
+        
+        try {
+          let query = supabaseClient
+            .from('sales_records')
+            .select('*')
+            .gte('sale_date', startDate)
+            .lte('sale_date', endDate);
+            
+          if (warehouse) query = query.eq('warehouse', warehouse);
+          if (product) query = query.eq('product_id', product);
+          
+          const { data, error } = await query;
+          
+          if (error) throw error;
+          
+          renderDetailTable(data);
+          calculateSummary(data);
+          
+        } catch (error) {
+          console.error('查询错误详情:', {
+            message: error.message,
+            details: error.details,
+            code: error.code
+          });
+          // 在加载区域显示错误信息
+          loadingEl.innerHTML = `
+            <div style="color: #e53e3e;">
+              <p>数据加载失败</p>
+              <p>错误: ${error.message}</p>
+            </div>
+          `;
+        } finally {
+          setTimeout(() => {
+            loadingEl.style.display = 'none';
+            // 重置加载动画
+            loadingEl.innerHTML = '<div class="spinner"></div><p>正在加载数据...</p>';
+          }, 2000);
+        }
+      }
+
+      function renderDetailTable(data) {
+        const tbody = detailTable;
+        tbody.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">未找到匹配的记录</td></tr>';
+          return;
+        }
+        
+        data.forEach(record => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${record.sale_date || '--'}</td>
+            <td>${record.product_id || '--'}</td>
+            <td>${record.product_name || '--'}</td>
+            <td>${record.warehouse || '--'}</td>
+            <td>${record.quantity || 0}</td>
+            <td>¥${(record.amount || 0).toFixed(2)}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      function calculateSummary(data) {
+        if (!data || data.length === 0) {
+          totalQuantityEl.textContent = '0';
+          totalAmountEl.textContent = '¥0.00';
+          totalProductsEl.textContent = '0';
+          return;
+        }
+        
+        // 计算总销量和总金额
+        const totalQuantity = data.reduce((sum, record) => sum + (record.quantity || 0), 0);
+        const totalAmount = data.reduce((sum, record) => sum + (record.amount || 0), 0);
+        
+        // 更新统计卡片
+        totalQuantityEl.textContent = totalQuantity.toLocaleString();
+        totalAmountEl.textContent = `¥${totalAmount.toFixed(2)}`;
+        
+        // 按商品汇总
+        const summaryMap = new Map();
+        
+        data.forEach(record => {
+          const key = `${record.product_id}-${record.warehouse}`;
+          
+          if (!summaryMap.has(key)) {
+            summaryMap.set(key, {
+              product_id: record.product_id,
+              product_name: record.product_name,
+              warehouse: record.warehouse,
+              total_quantity: 0,
+              total_amount: 0
+            });
+          }
+          
+          const summary = summaryMap.get(key);
+          summary.total_quantity += (record.quantity || 0);
+          summary.total_amount += (record.amount || 0);
+        });
+        
+        // 更新商品种类数量
+        totalProductsEl.textContent = summaryMap.size;
+        
+        // 渲染汇总表格
+        summaryTable.innerHTML = '';
+        
+        if (summaryMap.size === 0) {
+          summaryTable.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">无汇总数据</td></tr>';
+          return;
+        }
+        
+        summaryMap.forEach(summary => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${summary.product_id || '--'}</td>
+            <td>${summary.product_name || '--'}</td>
+            <td>${summary.warehouse || '--'}</td>
+            <td>${summary.total_quantity.toLocaleString()}</td>
+            <td>¥${summary.total_amount.toFixed(2)}</td>
+          `;
+          summaryTable.appendChild(row);
+        });
+      }
+
+      // 4. 页面初始化
+      document.addEventListener('DOMContentLoaded', () => {
+        if (!supabaseClient) {
+          console.error('错误: Supabase客户端未正确初始化');
+          // 禁用查询按钮并显示错误状态
+          queryBtn.disabled = true;
+          queryBtn.textContent = '系统未初始化';
+          queryBtn.style.background = '#e53e3e';
+          queryBtn.style.cursor = 'not-allowed';
+          // 显示错误信息
+          loadingEl.innerHTML = '<p style="color: #e53e3e;">系统初始化失败，请刷新页面</p>';
+          loadingEl.style.display = 'block';
+          return;
+        }
+        
+        console.log('DOM已加载，开始初始化页面');
+        
+        setDefaultDates();
+        loadFilterOptions();
+        
+        queryBtn.addEventListener('click', loadData);
+        
+        // 延迟加载初始数据
+        setTimeout(() => {
+          try {
+            loadData();
+          } catch (e) {
+            console.error('初始数据加载失败:', e);
+            loadingEl.innerHTML = '<p style="color: #e53e3e;">初始数据加载失败: ' + e.message + '</p>';
+          }
+        }, 1000);
+      });
+
   </script>
 </body>
 </html>
