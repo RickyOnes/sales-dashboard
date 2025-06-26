@@ -132,6 +132,7 @@
               <th>商品名称</th>
               <th>仓库</th>
               <th>销量</th>
+              <th>单价</th> <!-- 新增单价列 -->
               <th>金额</th>
             </tr>
           </thead>
@@ -187,7 +188,7 @@
 
         const endDate = new Date();
         const startDate = new Date();
-        startDate.setDate(endDate.getDate() - 30);
+        startDate.setDate(endDate.getDate() - 1); //默认为昨天
         
         endDateEl.value = formatDate(endDate);
         startDateEl.value = formatDate(startDate);
@@ -309,7 +310,7 @@
         tbody.innerHTML = '';
         
         if (!data || data.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">未找到匹配的记录</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">未找到匹配的记录</td></tr>';
           return;
         }
         
@@ -324,6 +325,8 @@
             <td>${record.product_name || '--'}</td>
             <td>${record.warehouse || '--'}</td>
             <td>${record.quantity || 0}</td>
+            <!-- 添加单价列 -->
+            <td>¥${(record.unit_price || 0).toFixed(2)}</td>
             <td>¥${amount.toFixed(2)}</td>
           `;
           tbody.appendChild(row);
@@ -337,16 +340,17 @@
           totalProductsEl.textContent = '0';
           return;
         }
-        
-        // 计算总销量和总金额（前端计算）
+
+        // 计算总销量和总金额
         let totalQuantity = 0;
         let totalAmount = 0;
         
         data.forEach(record => {
           totalQuantity += record.quantity || 0;
-          totalAmount += (record.quantity || 0) * (record.price || 0);
+          // 使用正确的字段名 unit_price 计算金额
+          totalAmount += (record.quantity || 0) * (record.unit_price || 0);
         });
-        
+
         // 更新统计卡片
         totalQuantityEl.textContent = totalQuantity.toLocaleString();
         totalAmountEl.textContent = `¥${totalAmount.toFixed(2)}`;
@@ -369,8 +373,8 @@
           
           const summary = summaryMap.get(key);
           summary.total_quantity += (record.quantity || 0);
-          // 前端计算金额
-          summary.total_amount += (record.quantity || 0) * (record.price || 0);
+          // 使用正确的字段名 unit_price 计算金额
+          summary.total_amount += (record.quantity || 0) * (record.unit_price || 0);
         });
         
         // 更新商品种类数量
