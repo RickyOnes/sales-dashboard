@@ -7,398 +7,622 @@
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    :root {
-      --primary: #4361ee;
-      --secondary: #3f37c9;
-      --success: #4cc9f0;
-      --light: #f8f9fa;
-      --dark: #212529;
-      --card-bg: #ffffff;
-      --border: #e2e8f0;
-      --shadow: rgba(0, 0, 0, 0.1);
-      --text-primary: #333333;
-      --text-secondary: #6c757d;
-    }
-    
-    * { 
-      box-sizing: border-box; 
-      margin: 0; 
-      padding: 0; 
-    }
-    
-    body { 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-      line-height: 1.6; 
-      color: var(--text-primary); 
-      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
-      padding: 20px; 
-      min-height: 100vh; 
-    }
-    
-    .container { 
-      max-width: 1400px; 
-      margin: 0 auto; 
-    }
-    
-    header { 
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); 
-      color: white; 
-      padding: 1.8rem 2rem; 
-      border-radius: 12px; 
-      margin-bottom: 2rem; 
-      box-shadow: 0 6px 15px rgba(67, 97, 238, 0.3);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    header::before {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-      transform: rotate(30deg);
-    }
-    
-    h1 { 
-      font-size: 2.4rem; 
-      margin-bottom: 0.4rem; 
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .subtitle { 
-      font-size: 1.1rem; 
-      opacity: 0.85; 
-      font-weight: 300;
-    }
-    
-    .card { 
-      background: var(--card-bg); 
-      border-radius: 12px; 
-      box-shadow: 0 4px 12px var(--shadow); 
-      margin-bottom: 2rem; 
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-    }
-    
-    .card-header { 
-      padding: 1.3rem 1.8rem; 
-      background-color: #f8fafc; 
-      border-bottom: 1px solid var(--border); 
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    
-    .card-header h2 {
-      font-size: 1.5rem;
-      color: var(--primary);
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .card-body { 
-      padding: 1.8rem; 
-    }
-    
-    .filters-row { 
-      display: grid; 
-      grid-template-columns: 180px 180px 200px 200px 1fr;
-      gap: 15px; 
-      margin-bottom: 1.5rem; 
-    }
-    
-    .filter-group { 
-      display: flex; 
-      flex-direction: column; 
-    }
-    
-    label { 
-      font-weight: 600; 
-      margin-bottom: 0.6rem; 
-      color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    input, select { 
-      padding: 0.85rem; 
-      border: 1px solid var(--border); 
-      border-radius: 8px; 
-      font-size: 1rem; 
-      background: white;
-      transition: border-color 0.3s, box-shadow 0.3s;
-      width: 100%;
-    }
-    
-    select {
-      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234361ee'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.75rem center;
-      background-size: 16px 12px;
-      appearance: none;
-      padding-right: 2.5rem;
-    }
-    
-    input:focus, select:focus {
-      border-color: var(--primary);
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-    }
-    
-    button { 
-      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); 
-      color: white; 
-      border: none; 
-      padding: 0.85rem 1.8rem; 
-      border-radius: 8px; 
-      cursor: pointer; 
-      font-size: 1rem; 
-      font-weight: 600; 
-      transition: all 0.3s ease; 
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    button:hover { 
-      transform: translateY(-2px); 
-      box-shadow: 0 6px 12px rgba(67, 97, 238, 0.3);
-    }
-    
-    .btn-query {
-      padding: 0.9rem 2.2rem;
-      font-size: 1.05rem;
-      box-shadow: 0 4px 10px rgba(67, 97, 238, 0.25);
-    }
-    
-    .btn-query i {
-      font-size: 1.1rem;
-    }
-    
-    table { 
-      width: 100%; 
-      border-collapse: separate; 
-      border-spacing: 0;
-      margin-top: 1.5rem;
-      background: white;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-    
-    th, td { 
-      padding: 1.1rem; 
-      text-align: left; 
-      border-bottom: 1px solid var(--border); 
-    }
-    
-    th { 
-      background-color: #f1f5fd; 
-      font-weight: 600; 
-      color: var(--primary);
-      position: sticky;
-      top: 0;
-    }
-    
-    tr:hover { 
-      background-color: #f8fafc; 
-    }
-    
-    .summary-stats { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-      gap: 1.5rem;
-      margin-bottom: 1.8rem; 
-    }
-    
-    .stat-card {
-      background: white;
-      border-radius: 10px;
-      padding: 1.5rem;
-      text-align: center;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-      border-left: 4px solid var(--primary);
-      transition: transform 0.3s;
-    }
-    
-    .stat-card:hover {
-      transform: translateY(-5px);
-    }
-    
-    .stat-value {
-      font-size: 2.2rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-top: 0.5rem;
-    }
-    
-    .stat-label {
-      font-size: 1.2rem;
-      color: var(--text-secondary);
-      font-weight: 500; 
-    }
-    
-    .summary-card { 
-      background: linear-gradient(135deg, #e0f7ff 0%, #f0f9ff 100%);
-      border: 1px solid #d1e9ff;
-    }
-    
-    .loading { 
-      display: none; 
-      text-align: center; 
-      padding: 3rem; 
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 12px;
-      margin: 2rem 0;
-    }
-    
-    .spinner { 
-      border: 4px solid rgba(67, 97, 238, 0.1); 
-      width: 50px; 
-      height: 50px; 
-      border-radius: 50%; 
-      border-left-color: var(--primary); 
-      animation: spin 1s linear infinite; 
-      display: inline-block; 
-      margin-bottom: 1.5rem;
-    }
-    
-    @keyframes spin { 
-      0% { transform: rotate(0deg); } 
-      100% { transform: rotate(360deg); } 
-    }
-    
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-    
-    .action-buttons {
-      display: flex;
-      gap: 0.8rem;
-    }
-    
-    .btn-secondary {
-      background: white;
-      color: var(--primary);
-      border: 1px solid var(--border);
-    }
-    
-    .btn-secondary:hover {
-      background: #f8fafc;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-    
-    .info-text {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
-    }
-    
-    .toggle-details {
-      margin-top: 1rem;
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      background: #f0f4f8;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    
-    .toggle-details:hover {
-      background: #e2e8f0;
-    }
-    
-    .detail-section {
-      margin-top: 2rem;
-      display: none;
-    }
-    
-    .detail-section.visible {
-      display: block;
-    }
-    
-    @media (max-width: 1400px) {
-      .filters-row { 
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: auto auto;
+      :root {
+        --primary: #4361ee;
+        --secondary: #3f37c9;
+        --success: #4cc9f0;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --card-bg: #ffffff;
+        --border: #e2e8f0;
+        --border-hover: #94a3b8;
+        --shadow: rgba(0, 0, 0, 0.1);
+        --text-primary: #333333;
+        --text-secondary: #6c757d;
+        --clear-hover: #e53e3e;
       }
       
-      .filter-group:nth-child(4) {
-        grid-column: 1 / 4;
+      * { 
+        box-sizing: border-box; 
+        margin: 0; 
+        padding: 0; 
       }
       
-      .filter-group:nth-child(5) {
-        grid-column: 1 / 4;
-      }
-    }
-    
-    @media (max-width: 992px) {
-      .filters-row { 
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto auto;
+      body { 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        line-height: 1.6; /* 提高可读性 */
+        color: var(--text-primary); 
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+        padding: 20px; 
+        min-height: 100vh; 
       }
       
-      .filter-group:nth-child(4) {
-        grid-column: 1 / 3;
-      }
-      
-      .filter-group:nth-child(5) {
-        grid-column: 1 / 3;
-      }
-    }
-    
-    @media (max-width: 768px) {
-      .filters-row { 
-        grid-template-columns: 1fr;
-        grid-template-rows: repeat(5, auto);
-      }
-      
-      .filter-group:nth-child(4),
-      .filter-group:nth-child(5) {
-        grid-column: 1;
+      .container { 
+        max-width: 1400px; 
+        margin: 0 auto; 
       }
       
       header { 
-        padding: 1.5rem; 
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); 
+        color: white; 
+        padding: 1.8rem 2rem; 
+        border-radius: 12px; 
+        margin-bottom: 2rem; 
+        box-shadow: 0 6px 15px rgba(67, 97, 238, 0.3);
+        position: relative;
+        overflow: hidden;
+      }
+      
+      header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+        transform: rotate(30deg);
       }
       
       h1 { 
-        font-size: 2rem; 
+        font-size: 2.4rem; 
+        margin-bottom: 0.4rem; 
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .subtitle { 
+        font-size: 1.1rem; 
+        opacity: 0.85; 
+        font-weight: 300;
+      }
+      
+      .card { 
+        background: var(--card-bg); 
+        border-radius: 12px; 
+        box-shadow: 0 4px 12px var(--shadow); 
+        margin-bottom: 2rem; 
+        overflow: visible; 
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      
+      .card:hover {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      }
+      
+      .card-header { 
+        padding: 1.3rem 1.8rem; 
+        background-color: #f8fafc; 
+        border-bottom: 1px solid var(--border); 
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      
+      .card-header h2 {
+        font-size: 1.5rem;
+        color: var(--primary);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .card-body { 
+        padding: 1.8rem; 
+        overflow: visible;
+      }
+      
+      .filters-row { 
+        display: grid; 
+        grid-template-columns: 180px 180px 200px 200px 1fr;
+        gap: 15px; 
+        margin-bottom: 1.5rem; 
+      }
+      
+      .filter-group { 
+        display: inline-block; 
+        flex-direction: column; 
+        position: relative;
+      }
+      
+      label { 
+        font-weight: 600; 
+        margin-bottom: 0.6rem; 
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      input, select { 
+        padding: 0.85rem; 
+        border: 1px solid var(--border); 
+        border-radius: 8px; 
+        font-size: 1rem; 
+        background: white;
+        transition: border-color 0.3s, box-shadow 0.3s;
+        width: 100%;
+      }
+      
+      select {
+        background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234361ee'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
+        appearance: none;
+        padding-right: 2.5rem;
+      }
+      
+      input:focus, select:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+      }
+      
+      button { 
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); 
+        color: white; 
+        border: none; 
+        padding: 0.85rem 1.8rem; 
+        border-radius: 8px; 
+        cursor: pointer; 
+        font-size: 1rem; 
+        font-weight: 600; 
+        transition: all 0.3s ease; 
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      button:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 6px 12px rgba(67, 97, 238, 0.3);
+      }
+      
+      .btn-query {
+        padding: 0.9rem 2.2rem;
+        font-size: 1.05rem;
+        box-shadow: 0 4px 10px rgba(67, 97, 238, 0.25);
+      }
+      
+      .btn-query i {
+        font-size: 1.1rem;
+      }
+      
+      /* 新增查询按钮悬停加深效果 */
+      .btn-query:hover {
+          background: linear-gradient(135deg, #3a55d4 0%, #3630b0 100%);
+          box-shadow: 0 6px 15px rgba(58, 85, 212, 0.4);
+      }      
+
+      /* 多选下拉框样式 - 优化合并 */
+      .custom-multiselect {
+        position: relative;
+        width: 100%;
+      }
+      
+      .select-box {
+        position: relative;
+        padding: 0.7rem 2rem 0.7rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: white;
+        display: flex;
+        align-items: flex-start; /* 顶部对齐 */
+        cursor: pointer;
+        z-index: 1;
+        min-height: 50px;
+        transition: border-color 0.3s, box-shadow 0.3s;
+        overflow: hidden;
+        
+        /* 悬停效果 */
+        &:hover {
+          border-color: var(--border-hover);
+        }
+        
+        /* 选中项显示区域 */
+        .selected-display {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          padding: 2px 0;
+          width: 100%;
+          min-height: 26px; /* 最小高度 */
+          max-height: 130px; /* 最大高度 */
+          overflow-y: auto; /* 内容过多时滚动 */
+          
+          .tag {
+            background-color: #eef2ff;
+            color: var(--primary);
+            border-radius: 16px;
+            padding: 4px 10px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            white-space: nowrap; /* 防止文字自动换行 */
+            height: 26px;
+            cursor: text;
+          }
+
+          .tag:hover {
+            background-color: #dbe4ff; /* 更深的背景色 */
+          }
+
+          .tag-remove {
+            margin-left: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            padding: 2px; /* 增加可点击区域 */
+            border-radius: 50%; /* 圆形区域更易点击 */
+            transition: all 0.2s ease; /* 添加过渡效果 */
+
+            &:hover {
+              color: #e53e3e; /* 更明显的悬停颜色 */
+              transform: scale(1.1); /* 悬停时轻微放大 */
+            }
+          }
+          
+          .more-tag {
+            background-color: #f0f4f8;
+            color: var(--text-secondary);
+            border-radius: 16px;
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+          }
+        }
+        
+        .placeholder {
+          color: var(--text-secondary);
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          flex: 1;
+        }
+        
+        .arrow {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          transition: transform 0.3s;
+         /* pointer-events: none; /* 防止点击箭头时关闭下拉 */
+        }
+        
+        .clear-btn {
+          position: absolute;
+          right: 8px;
+          transform: translateY(-50%);
+          cursor: pointer;
+          color: #999;
+          display: none;
+          transition: color 0.2s, transform 0.2s; /* 添加 transform 到过渡效果 */
+          
+          /* 设置变换的原点为顶部中心 */
+          transform-origin: top center;
+          
+          &:hover {
+            color: var(--clear-hover);
+            /* 合并两个变换：保持垂直居中并缩放 */
+            transform: translateY(-50%) scale(1.2);
+          }
+        }
+      }
+      
+      /* 当有选中项时显示清除按钮 */
+      .select-box.has-selection .clear-btn {
+        display: block;
+      }
+
+      /* 非标签区域的悬停效果 */
+      .select-box:not(.tag):hover {
+        background-color: #f0f0f0;
+      }
+
+      /* 下拉菜单容器 */
+      .options-container {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        padding: 4px 0;
+        margin-top: 5px;
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;      
+      }
+      
+      /* 修复悬停闪烁问题 */
+      .options-container.visible {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      
+      .option {
+        padding: 0.75rem 1.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: background 0.2s;
+        
+        &:hover {
+          background-color: #f0f4f8;
+        }
+        
+        &.selected {
+          background-color: #eef2ff;
+        }
+        
+        input {
+          margin-right: 10px;
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+        }
+        
+        label {
+          margin: 0;
+          flex: 1;
+          cursor: pointer;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+      
+      /* 表格样式 */
+      table { 
+        width: 100%; 
+        border-collapse: separate; 
+        border-spacing: 0;
+        margin-top: 1.5rem;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      
+      th, td { 
+        padding: 0.8rem; 
+        text-align: left; 
+        border-bottom: 1px solid var(--border); 
+      }
+      
+      th { 
+        background-color: #f1f5fd; 
+        font-weight: 600; 
+        color: var(--primary);
+        position: sticky;
+        top: 0;
+      }
+      
+      tr:hover { 
+        background-color: #f8fafc; 
+      }
+      
+      /* 统计卡片 */
+      .summary-stats { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+        gap: 1.5rem;
+        margin-bottom: 1.8rem; 
+      }
+      
+      .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        border-left: 4px solid var(--primary);
+        transition: transform 0.3s;
+        
+        &:hover {
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
       }
       
       .stat-value {
-        font-size: 1.8rem;
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-top: 0.5rem;
+      }
+      
+      .stat-label {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+      
+      .summary-card { 
+        background: linear-gradient(135deg, #e0f7ff 0%, #f0f9ff 100%);
+        border: 1px solid #d1e9ff;
+      }
+      
+      /* 加载动画 */
+      .loading {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        z-index: 1000;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      }
+
+      .spinner {
+        border: 4px solid rgba(67, 97, 238, 0.1);
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border-left-color: var(--primary);
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-bottom: 1.5rem;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .loading p {
+        font-size: 1.2rem;
+        color: var(--text-secondary);
+      }
+      
+      /* 控制按钮 */
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 1.5rem;
       }
       
       .action-buttons {
-        width: 100%;
-        justify-content: center;
+        display: flex;
+        gap: 0.8rem;
+      }
+      
+      .btn-secondary {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: 1px solid var(--border);
+      }
+      
+      .btn-secondary:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        box-shadow: 0 6px 12px rgba(5, 150, 105, 0.3);
       }
       
       .info-text {
-        width: 100%;
-        text-align: center;
-        margin-top: 1rem;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
       }
-    }
+      
+      /* 详细记录切换 */
+      .toggle-details {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: #f0f4f8;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        
+        &:hover {
+          background: #e2e8f0;
+        }
+      }
+      
+      .detail-section {
+        margin-top: 2rem;
+        display: none;
+        
+        &.visible {
+          display: block;
+        }
+      }
+      
+      /* 响应式设计 */
+      @media (max-width: 1400px) {
+        .filters-row { 
+          grid-template-columns: repeat(3, 1fr);
+          grid-template-rows: auto auto;
+        }
+        
+        .filter-group:nth-child(4) {
+          grid-column: 1 / 4;
+        }
+        
+        .filter-group:nth-child(5) {
+          grid-column: 1 / 4;
+        }
+      }
+      
+      @media (max-width: 992px) {
+        .filters-row { 
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto auto auto;
+        }
+        
+        .filter-group:nth-child(4) {
+          grid-column: 1 / 3;
+        }
+        
+        .filter-group:nth-child(5) {
+          grid-column: 1 / 3;
+        }
+      }
+      
+      @media (max-width: 768px) {
+        .filters-row { 
+          grid-template-columns: 1fr;
+          grid-template-rows: repeat(5, auto);
+        }
+        
+        .filter-group:nth-child(4),
+        .filter-group:nth-child(5) {
+          grid-column: 1;
+        }
+        
+        header { 
+          padding: 1.5rem; 
+        }
+        
+        h1 { 
+          font-size: 2rem; 
+        }
+        
+        .stat-value {
+          font-size: 1.8rem;
+        }
+        
+        .action-buttons {
+          width: 100%;
+          justify-content: center;
+        }
+        
+        .info-text {
+          width: 100%;
+          text-align: center;
+          margin-top: 1rem;
+        }
+        
+        .select-box {
+          padding-right: 2rem; /* 为清除按钮留出空间 */
+          
+          .clear-btn {
+            right: 5px;
+          }
+          
+          .selected-display {
+            max-height: 80px; /* 移动端允许更多空间 */
+          }
+        }
+      }
   </style>
 </head>
 <body>
@@ -425,27 +649,60 @@
           </div>
           
           <div class="filter-group">
-            <label for="warehouse"><i class="fas fa-warehouse"></i> 仓库</label>
-            <select id="warehouse">
-              <option value="">全部仓库</option>
-              <!-- 仓库选项将通过JS动态添加 -->
-            </select>
+            <label><i class="fas fa-warehouse"></i> 仓库</label>
+            <div class="custom-multiselect" id="warehouseMultiselect">
+              <div class="select-box" id="warehouseSelector">
+                <div class="placeholder">选择仓库</div>
+                <div class="selected-display"></div> <!-- 新增：用于显示选中项 -->
+                <i class="fas fa-chevron-down arrow"></i>
+                <i class="fas fa-times-circle clear-btn"></i> <!-- 新增：清除按钮 -->
+              </div>
+              <div class="options-container" id="warehouseOptions">
+                <div class="option" id="warehouseSelectAll">
+                  <input type="checkbox" id="selectAllWarehouses">
+                  <label for="selectAllWarehouses">全选</label>
+                </div>
+                <!-- 仓库选项将通过JS动态添加 -->
+              </div>
+            </div>
           </div>
           
           <div class="filter-group">
-            <label for="brand"><i class="fas fa-tags"></i> 品牌</label>
-            <select id="brand">
-              <option value="">全部品牌</option>
-              <!-- 品牌选项将通过JS动态添加 -->
-            </select>
+            <label><i class="fas fa-tags"></i> 品牌</label>
+            <div class="custom-multiselect" id="brandMultiselect">
+              <div class="select-box" id="brandSelector">
+                <div class="placeholder">选择品牌</div>
+                <div class="selected-display"></div> <!-- 新增：用于显示选中项 -->
+                <i class="fas fa-chevron-down arrow"></i>
+                <i class="fas fa-times-circle clear-btn"></i> <!-- 新增：清除按钮 -->
+              </div>
+              <div class="options-container" id="brandOptions">
+                <div class="option" id="brandSelectAll">
+                  <input type="checkbox" id="selectAllBrands">
+                  <label for="selectAllBrands">全选</label>
+                </div>
+                <!-- 品牌选项将通过JS动态添加 -->
+              </div>
+            </div>
           </div>
           
           <div class="filter-group">
-            <label for="product"><i class="fas fa-box"></i> 商品</label>
-            <select id="product">
-              <option value="">全部商品</option>
-              <!-- 商品选项将通过JS动态添加 -->
-            </select>
+            <label><i class="fas fa-box"></i> 商品</label>
+            <div class="custom-multiselect" id="productMultiselect">
+              <div class="select-box" id="productSelector">
+                <div class="placeholder">选择商品</div>
+                <div class="selected-display"></div> <!-- 新增：用于显示选中项 -->
+                <i class="fas fa-chevron-down arrow"></i>
+                <i class="fas fa-times-circle clear-btn"></i> <!-- 新增：清除按钮 -->
+              </div>
+              <div class="options-container" id="productOptions">
+                <div class="option" id="productSelectAll">
+                  <input type="checkbox" id="selectAllProducts">
+                  <label for="selectAllProducts">全选</label>
+                </div>
+                <!-- 商品选项将通过JS动态添加 -->
+              </div>
+            </div>
           </div>
         </div>
         
@@ -459,7 +716,7 @@
             </button>
           </div>
           <div class="info-text">
-            <i class="fas fa-info-circle"></i> 选择品牌后商品列表会自动过滤
+            <i class="fas fa-info-circle"></i> 品牌和商品支持多选，选择品牌后商品列表会自动过滤
           </div>
         </div>
       </div>
@@ -492,8 +749,8 @@
         <table id="summaryTable">
           <thead>
             <tr>
-              <th>销售日期</th>
-              <th>商品品牌</th>
+              <th>日期</th>
+              <th>品牌</th>
               <th>销售数量</th>
               <th>销售金额</th>
             </tr>
@@ -516,7 +773,7 @@
           <table id="detailTable">
             <thead>
               <tr>
-                <th>销售日期</th>
+                <th>日期</th>
                 <th>商品ID</th>
                 <th>商品名称</th>
                 <th>品牌</th>
@@ -539,558 +796,7 @@
   </div>
 
   <!-- 逻辑脚本 -->
-  <script>
-      // 1. 初始化Supabase客户端
-      const SUPABASE_URL = 'https://iglmqwpagzjadwauvchh.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnbG1xd3BhZ3pqYWR3YXV2Y2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODk4NDAsImV4cCI6MjA2NjQ2NTg0MH0.Mtiwp31mJvbLRTotbrb4_DobjjpM4kg9f4-G8oWz85E';
-      
-      let supabaseClient;
-      
-      try {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log('Supabase客户端初始化成功');
-      } catch (error) {
-        console.error('Supabase初始化失败:', error);
-        alert('系统初始化失败，请刷新页面或联系管理员');
-      }
+ <script src="mainApp.js"></script>
 
-      // 2. DOM元素引用
-      const startDateEl = document.getElementById('startDate');
-      const endDateEl = document.getElementById('endDate');
-      const warehouseEl = document.getElementById('warehouse');
-      const productEl = document.getElementById('product');
-      const brandEl = document.getElementById('brand');
-      const queryBtn = document.getElementById('queryBtn');
-      const clearBtn = document.getElementById('clearBtn');
-      const summaryTable = document.getElementById('summaryTable').querySelector('tbody');
-      const detailTable = document.getElementById('detailTable').querySelector('tbody');
-      const loadingEl = document.getElementById('loading');
-      const totalQuantityEl = document.getElementById('totalQuantity');
-      const totalAmountEl = document.getElementById('totalAmount');
-      const totalProductsEl = document.getElementById('totalProducts');
-      const totalBrandsEl = document.getElementById('totalBrands');
-      const toggleDetails = document.getElementById('toggleDetails');
-      const detailSection = document.getElementById('detailSection');
-
-      // 品牌对照数据
-      const brandData = {
-        "620110380873": "可口可乐",
-        "620129256973": "可口可乐",
-        "564962338546": "可口可乐",
-        "565310452152": "可口可乐",
-        "722560104237": "可口可乐",
-        "564962558487": "可口可乐",
-        "564961510592": "可口可乐",
-        "709638518416": "可口可乐",
-        "620118215304": "可口可乐",
-        "620112160585": "可口可乐",
-        "663530803890": "可口可乐",
-        "737528955147": "可口可乐",
-        "653048589002": "可口可乐",
-        "620122349755": "可口可乐",
-        "564961921705": "可口可乐",
-        "565296319461": "可口可乐",
-        "565298645289": "可口可乐",
-        "731130900876": "可口可乐",
-        "565301145135": "可口可乐",
-        "710125523387": "可口可乐",
-        "709657237952": "可口可乐",
-        "634921696396": "可口可乐",
-        "634015136979": "可口可乐",
-        "620124334922": "可口可乐",
-        "630030253053": "可口可乐",
-        "634013548147": "可口可乐",
-        "634012499277": "可口可乐",
-        "709709525787": "怡宝",
-        "709707338351": "怡宝",
-        "709714603257": "怡宝",
-        "709713388108": "怡宝",
-        "709711088364": "怡宝",
-        "709712146905": "怡宝",
-        "709722733053": "怡宝",
-        "709723737522": "怡宝",
-        "620104460377": "百事可乐",
-        "564964397917": "百事可乐",
-        "620101729963": "百事可乐",
-        "620106023591": "百事可乐",
-        "710129613769": "百事可乐",
-        "564963479055": "百事可乐",
-        "666455875983": "百事可乐",
-        "710196852570": "百事可乐",
-        "700322081690": "百事可乐",
-        "620731529980": "百事可乐",
-        "625023894076": "百事可乐",
-        "599757238035": "百事可乐",
-        "632366934941": "百事可乐",
-        "625034597892": "百事可乐",
-        "627694370668": "百事可乐",
-        "620098591261": "百事可乐",
-        "734855956041": "百事可乐",
-        "691851925940": "百事可乐",
-        "625022000721": "百事可乐",
-        "691838946831": "百事可乐",
-        "632356587286": "百事可乐",
-        "714498785564": "康师傅",
-        "725626936343": "康师傅",
-        "705790720041": "康师傅",
-        "709782438154": "康师傅",
-        "705793466489": "康师傅",
-        "706312407898": "康师傅",
-        "705792102626": "康师傅",
-        "705797361724": "康师傅",
-        "734392562287": "康师傅",
-        "705784395427": "康师傅",
-        "706313445743": "康师傅",
-        "734403961054": "康师傅",
-        "709784171718": "康师傅",
-        "710136679526": "康师傅",
-        "705781539991": "康师傅",
-        "705721859653": "康师傅",
-        "710138468359": "康师傅",
-        "705225140674": "康师傅",
-        "742584221091": "康师傅",
-        "709730192986": "康师傅",
-        "709729233230": "康师傅",
-        "706314772299": "康师傅",
-        "709732615337": "康师傅",
-        "706321158807": "康师傅",
-        "762661655865": "康师傅",
-        "762240185184": "康师傅",
-        "762240993928": "康师傅",
-        "707755296416": "依能",
-        "710104874481": "依能",
-        "742585842589": "依能",
-        "733888879169": "维他奶",
-        "709776927523": "维他奶",
-        "725503663908": "维他奶",
-        "733865244634": "维他奶",
-        "725501411603": "维他奶",
-        "611661637153": "统一",
-        "720370437846": "健力宝",
-        "720377948308": "健力宝",
-        "742582698822": "健力宝",
-        "725036773769": "健力宝",
-        "762238297420": "大窑",
-        "564962185076": "可口可乐",
-        "565284950262": "可口可乐",
-        "565773995546": "可口可乐",
-        "565775516478": "可口可乐",
-        "709676736965": "可口可乐",
-        "711001755208": "可口可乐",
-        "565777012102": "可口可乐",
-        "648636389883": "可口可乐",
-        "648638081076": "可口可乐",
-        "709719241010": "怡宝",
-        "709718002698": "怡宝",
-        "709721462395": "怡宝",
-        "709716074969": "怡宝",
-        "709679583997": "百事可乐",
-        "709686941205": "百事可乐",
-        "701262501782": "百事可乐",
-        "705783075103": "康师傅",
-        "710132850528": "康师傅",
-        "705233971193": "康师傅",
-        "706318435620": "康师傅",
-        "705259211814": "康师傅",
-        "706323181026": "康师傅",
-        "706315949540": "康师傅"
-      };
-
-      // 存储商品列表和品牌列表的全局变量
-      let allProducts = [];
-      let allBrands = [];
-
-      // 数字格式化函数
-      function formatNumber(num) {
-        if (typeof num !== 'number') return '0';
-        return num.toLocaleString('zh-CN', { 
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 2
-        });
-      }
-
-      // 3. 功能函数
-      function setDefaultDates() {
-        const formatDate = (date) => {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          return `${year}-${month}-${day}`;
-        };
-
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(endDate.getDate() - 1); // 默认显示昨7天
-        
-        endDateEl.value = formatDate(endDate);
-        startDateEl.value = formatDate(startDate);
-      }
-
-      // 根据选中的品牌过滤商品选项
-      function filterProductsByBrand() {
-        const selectedBrand = brandEl.value;
-        
-        // 重置商品选择
-        productEl.innerHTML = '<option value="">全部商品</option>';
-        
-        // 如果没有选择品牌，则显示所有商品
-        if (!selectedBrand) {
-          allProducts.forEach(product => {
-            const option = document.createElement('option');
-            option.value = product.product_id;
-            option.textContent = `${product.product_name} (${product.product_id})`;
-            productEl.appendChild(option);
-          });
-          return;
-        }
-        
-        // 获取选定品牌对应的商品ID
-        const brandProductIds = Object.entries(brandData)
-          .filter(([id, brand]) => brand === selectedBrand)
-          .map(([id]) => id);
-        
-        // 只显示属于选定品牌的商品
-        allProducts.forEach(product => {
-          if (brandProductIds.includes(product.product_id)) {
-            const option = document.createElement('option');
-            option.value = product.product_id;
-            option.textContent = `${product.product_name} (${product.product_id})`;
-            productEl.appendChild(option);
-          }
-        });
-      }
-
-      async function loadFilterOptions() {
-        if (!supabaseClient) {
-          console.error('错误: Supabase客户端未初始化');
-          return;
-        }
-        
-        try {
-          // 获取仓库列表
-          const { data: warehouses, error: whError } = await supabaseClient
-            .from('sales_records')
-            .select('warehouse')
-            .not('warehouse', 'is', null);
-            
-          if (whError) throw whError;
-          
-          // 去重并排序
-          const uniqueWarehouses = [...new Set(warehouses.map(w => w.warehouse))].sort();
-          
-          // 添加到选择框
-          warehouseEl.innerHTML = '<option value="">全部仓库</option>';
-          uniqueWarehouses.forEach(wh => {
-            const option = document.createElement('option');
-            option.value = wh;
-            option.textContent = wh;
-            warehouseEl.appendChild(option);
-          });
-          
-          // 获取商品列表
-          const { data: products, error: pError } = await supabaseClient
-            .from('sales_records')
-            .select('product_id, product_name')
-            .not('product_id', 'is', null);
-            
-          if (pError) throw pError;
-          
-          // 去重
-          allProducts = products.filter((p, i, self) => 
-            i === self.findIndex(t => t.product_id === p.product_id)
-          ).sort((a, b) => a.product_name.localeCompare(b.product_name));
-          
-          // 添加到选择框
-          productEl.innerHTML = '<option value="">全部商品</option>';
-          allProducts.forEach(p => {
-            const option = document.createElement('option');
-            option.value = p.product_id;
-            option.textContent = `${p.product_name} (${p.product_id})`;
-            productEl.appendChild(option);
-          });
-          
-          // 添加品牌选项
-          allBrands = [...new Set(Object.values(brandData))].sort();
-          brandEl.innerHTML = '<option value="">全部品牌</option>';
-          allBrands.forEach(brand => {
-            const option = document.createElement('option');
-            option.value = brand;
-            option.textContent = brand;
-            brandEl.appendChild(option);
-          });
-          
-          // 添加品牌选择事件监听
-          brandEl.addEventListener('change', filterProductsByBrand);
-          
-        } catch (error) {
-          console.error('加载筛选选项失败:', error);
-          alert('筛选选项加载失败: ' + error.message);
-        }
-      }
-
-      async function loadData() {
-        if (!supabaseClient) {
-          alert('系统未初始化，请刷新页面');
-          return;
-        }
-        
-        loadingEl.style.display = 'block';
-        summaryTable.innerHTML = '';
-        detailTable.innerHTML = '';
-        
-        const startDate = startDateEl.value;
-        const endDate = endDateEl.value;
-        const warehouse = warehouseEl.value;
-        const selectedProduct = productEl.value;
-        const selectedBrand = brandEl.value;
-        
-        try {
-          let query = supabaseClient
-            .from('sales_records')
-            .select('sale_date, product_id, product_name, warehouse, quantity, unit_price, brand') // 包含brand字段
-            .gte('sale_date', startDate)
-            .lte('sale_date', endDate);
-            
-          if (warehouse) query = query.eq('warehouse', warehouse);
-          
-          // 处理品牌和商品筛选
-          if (selectedBrand) {
-            // 获取该品牌对应的商品ID列表
-            const brandProductIds = Object.entries(brandData)
-              .filter(([id, brand]) => brand === selectedBrand)
-              .map(([id]) => id);
-            
-            // 如果同时选择了商品，则精确匹配
-            if (selectedProduct) {
-              query = query.in('product_id', [selectedProduct]);
-            } else {
-              query = query.in('product_id', brandProductIds);
-            }
-          } else if (selectedProduct) {
-            query = query.eq('product_id', selectedProduct);
-          }
-          
-          const { data, error } = await query;
-          
-          if (error) throw error;
-          
-          // 确保数据中有品牌信息
-          const dataWithBrand = data.map(record => ({
-            ...record,
-            brand: record.brand || brandData[record.product_id] || '未知品牌'
-          }));
-          
-          renderDetailTable(dataWithBrand);
-          calculateSummary(dataWithBrand);
-          
-        } catch (error) {
-          console.error('查询错误详情:', {
-            message: error.message,
-            details: error.details,
-            code: error.code
-          });
-          // 在加载区域显示错误信息
-          loadingEl.innerHTML = `
-            <div style="color: #e53e3e; padding: 1rem;">
-              <p style="font-size: 1.2rem; margin-bottom: 0.5rem;"><i class="fas fa-exclamation-triangle"></i> 数据加载失败</p>
-              <p>错误: ${error.message}</p>
-            </div>
-          `;
-        } finally {
-          setTimeout(() => {
-            loadingEl.style.display = 'none';
-            // 重置加载动画
-            loadingEl.innerHTML = '<div class="spinner"></div><p>正在加载数据，请稍候...</p>';
-          }, 2000);
-        }
-      }
-
-      function renderDetailTable(data) {
-        const tbody = detailTable;
-        tbody.innerHTML = '';
-        
-        if (!data || data.length === 0) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="8" style="text-align: center; padding: 30px; color: #6c757d;">
-                <i class="fas fa-database" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
-                未找到匹配的记录
-              </td>
-            </tr>
-          `;
-          return;
-        }
-        
-        data.forEach(record => {
-          const row = document.createElement('tr');
-          const amount = (record.quantity || 0) * (record.unit_price || 0);
-          
-          row.innerHTML = `
-            <td>${record.sale_date || '--'}</td>
-            <td>${record.product_id || '--'}</td>
-            <td>${record.product_name || '--'}</td>
-            <td>${record.brand || '--'}</td>
-            <td>${record.warehouse || '--'}</td>
-            <td>${formatNumber(record.quantity || 0)}</td>
-            <td>¥${formatNumber(record.unit_price || 0)}</td>
-            <td>¥${formatNumber(amount)}</td>
-          `;
-          tbody.appendChild(row);
-        });
-      }
-
-      function calculateSummary(data) {
-        if (!data || data.length === 0) {
-          totalQuantityEl.textContent = '0';
-          totalAmountEl.textContent = '¥0.00';
-          totalProductsEl.textContent = '0';
-          totalBrandsEl.textContent = '0';
-          return;
-        }
-
-        // 计算总销量和总金额
-        let totalQuantity = 0;
-        let totalAmount = 0;
-        
-        data.forEach(record => {
-          totalQuantity += record.quantity || 0;
-          totalAmount += (record.quantity || 0) * (record.unit_price || 0);
-        });
-
-        // 计算品牌数量和商品种类
-        const uniqueBrands = new Set();
-        const uniqueProducts = new Set();
-        
-        data.forEach(record => {
-          uniqueBrands.add(record.brand);
-          uniqueProducts.add(record.product_id);
-        });
-
-        // 更新统计卡片
-        totalQuantityEl.textContent = formatNumber(totalQuantity);
-        totalAmountEl.textContent = `¥${formatNumber(totalAmount)}`;
-        totalBrandsEl.textContent = formatNumber(uniqueBrands.size);
-        totalProductsEl.textContent = formatNumber(uniqueProducts.size);
-        
-        // 按日期和品牌汇总
-        const summaryMap = new Map();
-        
-        data.forEach(record => {
-          const key = `${record.sale_date}-${record.brand}`;
-          
-          if (!summaryMap.has(key)) {
-            summaryMap.set(key, {
-              sale_date: record.sale_date,
-              brand: record.brand,
-              total_quantity: 0,
-              total_amount: 0
-            });
-          }
-          
-          const summary = summaryMap.get(key);
-          summary.total_quantity += (record.quantity || 0);
-          summary.total_amount += (record.quantity || 0) * (record.unit_price || 0);
-        });
-        
-        // 渲染汇总表格
-        summaryTable.innerHTML = '';
-        
-        if (summaryMap.size === 0) {
-          summaryTable.innerHTML = `
-            <tr>
-              <td colspan="4" style="text-align: center; padding: 30px; color: #6c757d;">
-                <i class="fas fa-chart-bar" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
-                无汇总数据
-              </td>
-            </tr>
-          `;
-          return;
-        }
-        
-        // 按日期和品牌排序
-        const sortedSummaries = Array.from(summaryMap.values()).sort((a, b) => {
-          if (a.sale_date === b.sale_date) {
-            return a.brand.localeCompare(b.brand);
-          }
-          return a.sale_date.localeCompare(b.sale_date);
-        });
-        
-        sortedSummaries.forEach(summary => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${summary.sale_date || '--'}</td>
-            <td>${summary.brand || '--'}</td>
-            <td>${formatNumber(summary.total_quantity)}</td>
-            <td>¥${formatNumber(summary.total_amount)}</td>
-          `;
-          summaryTable.appendChild(row);
-        });
-      }
-
-      // 清除筛选条件
-      function clearFilters() {
-        startDateEl.value = '';
-        endDateEl.value = '';
-        warehouseEl.selectedIndex = 0;
-        productEl.selectedIndex = 0;
-        brandEl.selectedIndex = 0;
-        
-        // 重置商品列表（显示所有商品）
-        productEl.innerHTML = '<option value="">全部商品</option>';
-        allProducts.forEach(p => {
-          const option = document.createElement('option');
-          option.value = p.product_id;
-          option.textContent = `${p.product_name} (${p.product_id})`;
-          productEl.appendChild(option);
-        });
-        
-        // 重新设置默认日期
-        setDefaultDates();
-      }
-
-      // 切换详细记录显示状态
-      function toggleDetailSection() {
-        detailSection.classList.toggle('visible');
-        const icon = toggleDetails.querySelector('i');
-        if (detailSection.classList.contains('visible')) {
-          toggleDetails.innerHTML = '<i class="fas fa-chevron-up"></i> 点击隐藏详细销售记录';
-        } else {
-          toggleDetails.innerHTML = '<i class="fas fa-chevron-down"></i> 点击显示详细销售记录';
-        }
-      }
-
-      // 4. 页面初始化
-      document.addEventListener('DOMContentLoaded', () => {
-        if (!supabaseClient) {
-          console.error('错误: Supabase客户端未正确初始化');
-          queryBtn.disabled = true;
-          queryBtn.textContent = '系统未初始化';
-          queryBtn.style.background = '#e53e3e';
-          queryBtn.style.cursor = 'not-allowed';
-          loadingEl.innerHTML = '<p style="color: #e53e3e; padding: 1rem;">系统初始化失败，请刷新页面</p>';
-          loadingEl.style.display = 'block';
-          return;
-        }
-        
-        console.log('DOM已加载，开始初始化页面');
-        
-        setDefaultDates();
-        loadFilterOptions();
-        
-        queryBtn.addEventListener('click', loadData);
-        clearBtn.addEventListener('click', clearFilters);
-        toggleDetails.addEventListener('click', toggleDetailSection);
-        
-        // 延迟加载初始数据
-        setTimeout(() => {
-          try {
-            loadData();
-          } catch (e) {
-            console.error('初始数据加载失败:', e);
-            loadingEl.innerHTML = '<p style="color: #e53e3e; padding: 1rem;">初始数据加载失败: ' + e.message + '</p>';
-          }
-        }, 1000);
-      });
-  </script>
 </body>
 </html>
