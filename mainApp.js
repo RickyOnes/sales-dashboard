@@ -640,55 +640,203 @@ function calculateSummary(data) {
   const summaryMap = new Map();
   
   data.forEach(record => {
-    const key = `${record.sale_date}-${record.brand}`;
+    const brand = record.brand || '未知品牌'; // 处理空品牌情况
     
-    if (!summaryMap.has(key)) {
-      summaryMap.set(key, {
-        sale_date: record.sale_date,
-        brand: record.brand,
+    if (!summaryMap.has(brand)) {
+      summaryMap.set(brand, {
+        brand: brand,
         total_quantity: 0,
         total_amount: 0
       });
     }
     
-    const summary = summaryMap.get(key);
+    const summary = summaryMap.get(brand);
     summary.total_quantity += (record.quantity || 0);
     summary.total_amount += (record.quantity || 0) * (record.unit_price || 0);
   });
   
-  // 渲染汇总表格
+  // 按品牌名称排序
+  const sortedSummaries = Array.from(summaryMap.values()).sort((a, b) => 
+    a.brand.localeCompare(b.brand)
+  );
+  
+  // === 修改点2: 渲染汇总表格（只显示品牌）===
   summaryTable.innerHTML = '';
-  
-  if (summaryMap.size === 0) {
-    summaryTable.innerHTML = `
-      <tr>
-        <td colspan="4" style="text-align: center; padding: 30px; color: #6c757d;">
-          <i class="fas fa-chart-bar" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
-          无汇总数据
-        </td>
-      </tr>
-    `;
-    return;
-  }
-  
-  // 按日期和品牌排序
-  const sortedSummaries = Array.from(summaryMap.values()).sort((a, b) => {
-    if (a.sale_date === b.sale_date) {
-      return a.brand.localeCompare(b.brand);
-    }
-    return a.sale_date.localeCompare(b.sale_date);
-  });
   
   sortedSummaries.forEach(summary => {
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td>${summary.sale_date || '--'}</td>
-      <td>${summary.brand || '--'}</td>
+      <td>${summary.brand}</td>
       <td>${formatNumber(summary.total_quantity)}</td>
       <td>¥${formatNumber(summary.total_amount)}</td>
     `;
     summaryTable.appendChild(row);
   });
+  
+  // === 新增: 渲染饼图 ===
+  renderBrandPieChart(sortedSummaries);
+
+  setTimeout(() => {
+    syncContainersDimensions();
+  }, 0);  
+}
+
+// 同步容器尺寸函数
+function syncContainersDimensions() {
+  const tableContainer = document.querySelector('.summary-table-container');
+  const chartContainer = document.querySelector('.chart-container');
+  
+  if (tableContainer && chartContainer) {
+    // 获取左侧表格的实际高度
+    const tableHeight = tableContainer.scrollHeight;
+    
+    // 设置右侧图表容器高度
+    chartContainer.style.height = `${tableHeight}px`;
+    
+    // 如果图表已渲染，重新调整大小
+    if (chartContainer.chartInstance) {
+      chartContainer.chartInstance.resize();
+    }
+  }
+}
+
+// ============== 新增: 饼图渲染函数 ==============
+function renderBrandPieChart(brandSummaries) {
+  const chartContainer = document.getElementById('chartContainer');
+  
+  // 清空容器
+  chartContainer.innerHTML = brandSummaries.length > 0 
+    ? '<canvas id="brandChart"></canvas>' 
+    : '<div class="no-chart-data">无品牌数据可展示</div>';
+  
+  if (brandSummaries.length === 0) return;
+  
+  const ctx = document.getElementById('brandChart').getContext('2d');
+  if (!ctx) {
+    console.error('Canvas context not found');
+    return;
+  }  
+  
+  // 改进的颜色生成器 - 增加对比度
+  const generateColors = (count) => {
+    const baseColors = [
+      '#36A2EB', // 蓝色
+      '#F15BB5',  // 粉红
+      '#FFCE56', // 黄色
+      '#FF6384', // 红色
+      '#9966FF', // 紫色
+      '#FF9F40', // 橙色
+      '#8AC926', // 绿色
+      '#6A4C93', // 深紫
+      '#4BC0C0', // 青色
+      '#1982C4' // 深蓝
+    ];
+    
+    // 当品牌数量超过基础颜色时，生成随机颜色
+    if (count > baseColors.length) {
+      for (let i = baseColors.length; i < count; i++) {
+        baseColors.push(`#${Math.floor(Math.random()*16777215).toString(16)}`);
+      }
+    }
+    
+    return baseColors.slice(0, count);
+  };
+  
+  // 创建饼图
+  const chart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: brandSummaries.map(item => item.brand),
+      datasets: [{
+        data: brandSummaries.map(item => item.total_amount),
+        backgroundColor: generateColors(brandSummaries.length),
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverOffset: 15,
+        radius: '95%' // 设置饼图大小为95%
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: {
+            font: { 
+              size: 12,
+              weight: 'bold'
+            },
+            padding: 15,
+            usePointStyle: true,
+            color: '#333'
+          }
+        },
+        title: {
+          display: true,
+          text: '品牌销售金额占比',
+          font: {
+            size: 18,
+            weight: 'bold'
+          },
+          color: '#222',
+          padding: {
+            top: 20,
+            bottom: 15
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 12
+          },
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.raw || 0;
+              const total = context.chart.getDatasetMeta(0).total;
+              const percentage = Math.round((value / total) * 100);
+              return `${label}: ¥${formatNumber(value)} (${percentage}%)`;
+            }
+          }
+        },
+        datalabels: {
+          display: true,
+          formatter: (value, ctx) => {
+            const total = ctx.chart.getDatasetMeta(0).total;
+            const percentage = Math.round((value / total) * 100);
+            const label = ctx.chart.data.labels[ctx.dataIndex];
+            
+            if (percentage < 5) return null;
+            
+            return `${label}\n${percentage}%`;
+          },
+          color: '#fff',
+          font: {
+            weight: 'bold',
+            size: 12
+          },
+          align: 'start',
+          anchor: 'end',
+          offset: 30,
+          clip: false,
+          textAlign: 'center'
+        }
+      },
+      animation: {
+        animateRotate: true,
+        animateScale: true
+      }
+    },
+    plugins: [ChartDataLabels]
+  });
+
+  // 存储图表实例以便后续调整
+  chartContainer.chartInstance = chart;
 }
 
 // ============== 8. 其他功能 ==============
@@ -715,9 +863,14 @@ function clearFilters() {
 // 切换详细记录显示
 function toggleDetailSection() {
   detailSection.classList.toggle('visible');
-  toggleDetails.innerHTML = detailSection.classList.contains('visible')
-    ? '<i class="fas fa-chevron-up"></i> 点击隐藏详细销售记录'
-    : '<i class="fas fa-chevron-down"></i> 点击显示详细销售记录';
+  
+  // 更新图标方向
+  const icon = document.querySelector('#toggleDetails i');
+  if (detailSection.classList.contains('visible')) {
+    icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+  } else {
+    icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+  }
 }
 
 // ============== 9. 页面初始化 ==============
@@ -743,7 +896,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // 绑定事件
       queryBtn.addEventListener('click', loadData);
       clearBtn.addEventListener('click', clearFilters);
-      toggleDetails.addEventListener('click', toggleDetailSection);
+      document.getElementById('toggleDetails').addEventListener('click', toggleDetailSection);
       
       // 加载初始数据
       loadData();
