@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="icon" href="app32x32.png" type="image/x-icon">
+  <link rel="icon" href="app32x32.png" type="image/png">
   <style>
       :root {
         --primary: #4361ee;
@@ -27,7 +27,7 @@
       
       * { 
         box-sizing: border-box; 
-        margin: 0; 
+        margin: 0;
         padding: 0; 
       }
       
@@ -710,15 +710,59 @@
 
       /* 小于768px时强制垂直堆叠（极端小屏） */
       @media (max-width: 768px) {
+        /* 调整饼图容器 */
+        .chart-container {
+          padding: 0.5rem;
+        }
+        
+        /* 将饼图和表格改为上下堆叠 */
         .summary-content {
-          flex-direction: column;
+          flex-direction: column; /* 改为垂直布局 */
         }
         
         .summary-table-container,
         .chart-container {
           width: 100% !important;
-          min-width: auto;
-          flex: 1 1 auto;
+          min-width: 100% !important; /* 确保宽度100% */
+          flex: 0 0 auto !important; /* 取消flex分配 */
+        }
+        
+        .chart-container {
+          margin-top: 1.5rem; /* 增加上边距 */
+          min-height: 300px; /* 调整最小高度 */
+        }
+        
+        /* 调整饼图文字大小 */
+        #brandChart {
+          font-size: 0.8em !important;
+        }
+        
+        /* 调整饼图数据标签位置 */
+        .chartjs-datalabels {
+          font-size: 10px !important;
+          transform: translate(15px, 0) !important; /* 将文字向外移动 */
+        }
+        
+        /* 调整图例位置和样式 */
+        .chartjs-legend {
+          position: absolute;
+          right: 5px !important;
+          top: 10px !important;
+          font-size: 10px !important;
+          max-width: 40% !important; /* 限制图例宽度 */
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        
+        /* 调整图例项间距 */
+        .chartjs-legend li {
+          margin-bottom: 5px !important;
+        }
+        
+        /* 调整饼图标题 */
+        .chartjs-title {
+          font-size: 14px !important;
+          padding: 5px 0 !important;
         }
       }
 

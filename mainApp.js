@@ -716,7 +716,10 @@ function renderBrandPieChart(brandSummaries) {
     console.error('Canvas context not found');
     return;
   }  
-  
+
+  // 根据窗口宽度判断是否为小屏幕（小于768px）
+  const isSmallScreen = window.innerWidth < 768;  
+
   // 改进的颜色生成器 - 增加对比度
   const generateColors = (count) => {
     const baseColors = [
@@ -764,10 +767,11 @@ function renderBrandPieChart(brandSummaries) {
           position: 'right',
           labels: {
             font: { 
-              size: 12,
+              size: isSmallScreen ? 10 : 12, // 小屏幕字体10px，否则12px
               weight: 'bold'
             },
-            padding: 15,
+            padding: isSmallScreen ? 5 : 15, // 移动端减少间距
+            boxWidth: isSmallScreen ? 10 : 12, // 移动端缩小图例点
             usePointStyle: true,
             color: '#333'
           }
@@ -776,13 +780,13 @@ function renderBrandPieChart(brandSummaries) {
           display: true,
           text: '品牌销售金额占比',
           font: {
-            size: 18,
+            size: isSmallScreen ? 14 : 18, // 小屏幕标题小一些
             weight: 'bold'
           },
           color: '#222',
           padding: {
-            top: 20,
-            bottom: 15
+            top: isSmallScreen ? 5 : 20, // 移动端减少内边距
+            bottom: isSmallScreen ? 5 : 15
           }
         },
         tooltip: {
@@ -811,18 +815,18 @@ function renderBrandPieChart(brandSummaries) {
             const percentage = Math.round((value / total) * 100);
             const label = ctx.chart.data.labels[ctx.dataIndex];
             
-            if (percentage < 5) return null;
+            if (percentage < 5) return null; //不显示小于5%的标签
             
             return `${label}\n${percentage}%`;
           },
           color: '#fff',
           font: {
             weight: 'bold',
-            size: 12
+            size: isSmallScreen ? 10 : 12 // 移动端字体更小
           },
           align: 'start',
           anchor: 'end',
-          offset: 30,
+          offset: isSmallScreen ? 40 : 30, // 小屏幕增加偏移量
           clip: false,
           textAlign: 'center'
         }
