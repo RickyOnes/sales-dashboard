@@ -2080,6 +2080,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeApp();
   });
 
+  // 添加回车键登录支持
+  if (loginPassword) {
+    loginPassword.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        loginBtn.click();
+      }
+    });
+  }
+
   // ============== 注册功能 ==============  
   registerBtn.addEventListener('click', async () => {
     const email = registerEmail.value;
