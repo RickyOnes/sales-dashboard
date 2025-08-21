@@ -1687,10 +1687,10 @@ function renderBrandPieChart(brandSummaries) {
           position: 'right',
           labels: {
             font: { 
-              size: window.innerWidth <= 768 ? 10 : 12,
+              size: window.innerWidth <= 768 ? 10 : 14,
               weight: 'bold'
             },
-            padding: window.innerWidth <= 768 ? 8 : 15,
+            padding: window.innerWidth <= 768 ? 9 : 20,
             usePointStyle: true,
             color: '#333'
           }
@@ -1699,7 +1699,7 @@ function renderBrandPieChart(brandSummaries) {
           display: true,
           text: '品牌销售金额占比',
           font: {
-            size: 18,
+            size: window.innerWidth <= 768 ? 16 : 18,
             weight: 'bold'
           },
           color: '#222',
