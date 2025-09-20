@@ -1,7 +1,7 @@
 // ============== 1. 初始化部分 ==============
 // Supabase客户端初始化
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+const SUPABASE_URL = window.SUPABASE_URL;
+const SUPABASE_KEY = window.SUPABASE_KEY;
 
 let supabaseClient;
 let flatpickrInstance; // 全局Flatpickr实例
