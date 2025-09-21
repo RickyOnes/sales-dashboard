@@ -830,7 +830,7 @@ function renderReturnsTable() {
       <tr>
         <td colspan="6" style="text-align: center; padding: 30px; color: #6c757d;">
           <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 1rem; display: block; color: #28a745;"></i>
-          所有记录入库-销售-退货=0，无差异记录
+          所有记录入库-销售-退货-分拣=0，无差异记录
         </td>
       </tr>
     `;
@@ -909,7 +909,7 @@ function renderReturnsSummaryChart(inbounds, sales, returns, sorting_difference,
           },
           padding: {
             top: 10,
-            bottom: 20
+            bottom: 25
           }
         },
         tooltip: {
@@ -934,7 +934,7 @@ function renderReturnsSummaryChart(inbounds, sales, returns, sorting_difference,
           },
           font: {
             weight: 'bold',
-            size: 14
+            size: window.innerWidth <= 768 ? 12 : 14
           },
           color: function(context) {
             // 根据原始值的正负设置标签颜色
@@ -1007,53 +1007,49 @@ async function toggleDisplayMode() {
   }
 }
 // ============== 7. 数据加载与处理 ==============
-// ****通用数据获取函数（支持分页）*****
-async function fetchRecords(tableName, fields, conditions = {}) {
+// ****通用数据获取函数（RPC）*****
+async function fetchRecords(tableName, conditions = {}) {
   try {
-    const batchSize = 50000; // 每批次获取的记录数
-    let allData = []; // 存储所有数据
-    let from = 0; // 起始位置
-    let hasMore = true; // 是否还有更多数据
-
-    // 构建基础查询
-    let baseQuery = supabaseClient
-      .from(tableName)
-      .select(fields.join(','));
-
-    // 应用查询条件
-    Object.entries(conditions).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        baseQuery = baseQuery.in(key, value);
-      } else if (value !== undefined) {
-        if (typeof value === 'object' && value.gte && value.lte) {
-          baseQuery = baseQuery.gte(key, value.gte).lte(key, value.lte);
-        } else {
-          baseQuery = baseQuery.eq(key, value);
-        }
-      }
+    // 调用 Edge Function
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/batch-fetch-records`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        table_name: tableName,
+        start_date: conditions.sale_date?.gte || startDateStr,
+        end_date: conditions.sale_date?.lte || endDateStr
+      }),
     });
 
-    // 分批次获取所有数据
-    while (hasMore) {
-      // 创建当前批次的查询（复制基础查询并添加范围限制）
-      let query = baseQuery.range(from, from + batchSize - 1);
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      // 添加当前批次的数据
-      if (data && data.length > 0) {
-        allData = [...allData, ...data];
-      }
-      
-      // 检查是否还有更多数据
-      hasMore = data.length === batchSize;
-      from += batchSize;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
-    return allData;
+
+    //用offset分页 const data = await response.json();
+    const result = await response.json(); //用游标分页
+    // 显示获取到的记录数量
+    if (result.data && result.data.length > 0) {
+      const message = result.is_complete 
+        ? `成功获取 ${result.data.length} 条记录`
+        : `获取了 ${result.data.length} 条记录（数据量较大，已提前结束）`;
+      
+      showRoundedAlert(message, result.is_complete ? 'success' : 'warning');
+    }
+    
+    return result.data;    
+    /* 显示获取到的记录数量（offset分页）
+    if (data && data.length > 0) {
+      showRoundedAlert(`成功获取 ${data.length} 条记录`, 'success');
+    }
+    
+    return data;*/
   } catch (error) {
-    showRoundedAlert(`从 ${tableName} 获取数据失败:${error}`,'error');
+    
+    showRoundedAlert(`获取数据失败: ${error.message}`,'error');
     throw error;
   }
 }
@@ -1084,19 +1080,15 @@ async function loadFilterOptions() {
     
     // 根据当前仓库选择不同的查询表
     const table = currentWarehouse === 'longqiao' ? 'longqiao_records' : 'sales_records';
-    // 设置查询字段（所有）
-    const fields = currentWarehouse === 'longqiao'
-      ? ['sale_date', 'product_id', 'product_name', 'sales', 'quantity', 'customer', 'amount', 'cost', 'brand']
-      : ['sale_date', 'product_id', 'product_name', 'warehouse', 'quantity', 'unit_price', 'brand', 'pieces', 'returns', 'inbounds','difference'];
 
     // 构建查询条件（只查询当前日期范围内的记录）
     const conditions = {
       sale_date: { gte: startDateStr, lte: endDateStr }
     };
-    console.time('加载销售记录时间');
-    // 使用通用函数获取数据
-    salesRecords = await fetchRecords(table, fields, conditions);
-    console.timeEnd('加载销售记录时间');
+    console.time('FetchRecords');
+    // 调用RPC函数获取数据
+    salesRecords = await fetchRecords(table, conditions);
+    console.timeEnd('FetchRecords');
     // 处理仓库数据
     if (salesRecords.length > 0) {
       const warehouseKey = currentWarehouse === 'longqiao' ? 'sales' : 'warehouse';
@@ -2301,71 +2293,6 @@ function handleResponsiveLayout() {
 
 // ============== 9. 页面初始化 ==============
 document.addEventListener('DOMContentLoaded', async () => {
-  const progressBar = document.querySelector('.progress-bar');
-  const loadingText = document.querySelector('.loading-container p');
-
-  // 检查资源是否已加载的函数
-  const checkResource = (condition, name) => {
-      return new Promise((resolve) => {
-          const checkInterval = setInterval(() => {
-              if (condition) {
-                  clearInterval(checkInterval);
-                  resolve(name);
-              }
-          }, 100);
-          
-          // 超时处理（5秒后）
-          setTimeout(() => {
-              clearInterval(checkInterval);
-              resolve(null);
-          }, 5000);
-      });
-  };
-
-  // 定义要检查的资源
-  const resourcesToCheck = [
-      { condition: () => window.supabase, name: 'Supabase' },
-      { condition: () => window.Chart, name: 'Chart.js' },
-      { condition: () => window.ChartDataLabels, name: 'Datalabels插件' },
-      { condition: () => window.flatpickr, name: 'Flatpickr' }
-  ];
-
-  let loadedCount = 0;
-  const totalResources = resourcesToCheck.length;
-
-  // 更新初始进度
-  const initialProgress = (loadedCount / totalResources) * 100;
-  progressBar.style.width = initialProgress + '%';
-  loadingText.textContent = `正在初始化系统... (${loadedCount}/${totalResources})`;
-
-  // 检查每个资源
-  const checkPromises = resourcesToCheck.map(resource => 
-      checkResource(resource.condition(), resource.name)
-  );
-
-  for (let i = 0; i < checkPromises.length; i++) {
-      try {
-          await checkPromises[i];
-          loadedCount++;
-          const progress = (loadedCount / totalResources) * 100;
-          progressBar.style.width = progress + '%';
-          loadingText.textContent = `正在初始化系统... (${loadedCount}/${totalResources})`;
-      } catch (error) {
-          console.warn('资源检查超时:', resourcesToCheck[i].name);
-          loadedCount++;
-          const progress = (loadedCount / totalResources) * 100;
-          progressBar.style.width = progress + '%';
-      }
-  }
-
-  // 所有资源检查完成后
-  loadingText.textContent = '系统初始化完成...';
-
-  setTimeout(() => {
-      document.getElementById('mloading').style.display = 'none';
-      document.getElementById('header').style.display = 'none';
-  }, 300);
-
   if (!supabaseClient) {
     showRoundedAlert('错误: Supabase客户端未正确初始化');
     queryBtn.disabled = true;
@@ -2729,6 +2656,7 @@ function initToggleButtonPositioning() {
   const chartContainer = document.querySelector('.chart-container');
   const returnsContainer = document.querySelector('.returns-table-container');
   const tableContainer = document.querySelector('.summary-table-container');
+
   if (!chartContainer || !returnsContainer || !chartToggleBtn) return;
 
   function updateButtonPosition() {
@@ -2755,8 +2683,7 @@ function initToggleButtonPositioning() {
     const resizeObserver = new ResizeObserver(updateButtonPosition);
     resizeObserver.observe(chartContainer);
     resizeObserver.observe(returnsContainer);
-    resizeObserver.observe(tableContainer);    
+    resizeObserver.observe(tableContainer);
   }
-  
   updateButtonPosition();// 初始位置
 }
