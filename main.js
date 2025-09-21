@@ -1,7 +1,7 @@
 // ============== 1. 初始化部分 ==============
 // Supabase客户端初始化
-const SUPABASE_URL = window.SUPABASE_URL;
-const SUPABASE_KEY = window.SUPABASE_KEY;
+const SUPABASE_URL = 'https://iglmqwpagzjadwauvchh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnbG1xd3BhZ3pqYWR3YXV2Y2hoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA4ODk4NDAsImV4cCI6MjA2NjQ2NTg0MH0.Mtiwp31mJvbLRTotbrb4_DobjjpM4kg9f4-G8oWz85E';
 
 let supabaseClient;
 let flatpickrInstance; // 全局Flatpickr实例
